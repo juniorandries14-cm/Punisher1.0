@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUNISHER Host — Key Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060A; --panel:#0D0F16; --panel-2:#12151E; --line:#20242F;
+    --text:#EDEFF4; --text-dim:#8891A3; --cyan:#31D3F2; --blue:#3E6BFF;
+    --grad: linear-gradient(90deg, var(--cyan), var(--blue));
+    --bull:#3ED6A0; --bear:#EF5B57;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ background:var(--bg); color:var(--text); font-family:'IBM Plex Mono', monospace; min-height:100vh; padding-bottom:60px; }
+  h1,h2,.display{ font-family:'Barlow Condensed', sans-serif; }
+
+  header{ display:flex; align-items:center; gap:12px; padding:18px 28px; border-bottom:1px solid var(--line); }
+  header .mark{ width:34px; height:34px; border-radius:9px; border:1.5px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--cyan); font-family:'Barlow Condensed',sans-serif; }
+  header h1{ font-size:20px; font-weight:800; }
+  header h1 span{ background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header .sub{ font-size:11px; color:var(--text-dim); margin-left:4px; letter-spacing:.1em; text-transform:uppercase; }
+
+  .wrap{ max-width:960px; margin:0 auto; padding:28px 24px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; margin-bottom:22px; overflow:hidden; }
+  .card-head{ padding:16px 20px; border-bottom:1px solid var(--line); font-size:13px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em; }
+
+  .gen-form{ display:flex; gap:10px; padding:18px 20px; flex-wrap:wrap; align-items:flex-end; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; }
+  .field input{ padding:11px 12px; background:#0A0C13; border:1px solid var(--line); border-radius:8px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:13px; min-width:160px; }
+  .field input:focus{ outline:none; border-color:var(--cyan); }
+  .gen-btn{ padding:12px 20px; border:none; border-radius:8px; background:var(--grad); color:#04141A; font-weight:700; font-family:'IBM Plex Mono',monospace; font-size:13px; cursor:pointer; }
+  .gen-btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .new-key-box{ margin:0 20px 18px; padding:14px 16px; background:var(--panel-2); border:1px solid var(--cyan); border-radius:10px; font-size:13px; display:none; }
+  .new-key-box .k{ color:var(--cyan); font-weight:600; word-break:break-all; }
+  .new-key-box .copy{ font-size:11px; color:var(--text-dim); cursor:pointer; margin-top:6px; display:inline-block; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  th{ text-align:left; padding:12px 16px; color:var(--text-dim); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.06em; border-bottom:1px solid var(--line); }
+  td{ padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .key-cell{ display:flex; align-items:center; gap:8px; }
+  .key-cell code{ color:var(--cyan); }
+  .key-cell .copy-ic{ cursor:pointer; color:var(--text-dim); font-size:11px; }
+  .status-pill{ font-size:10px; padding:4px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:.05em; }
+  .status-pill.active{ background:rgba(62,214,160,0.14); color:var(--bull); border:1px solid var(--bull); }
+  .status-pill.revoked{ background:rgba(239,91,87,0.14); color:var(--bear); border:1px solid var(--bear); }
+  .status-pill.exhausted{ background:rgba(136,145,163,0.14); color:var(--text-dim); border:1px solid var(--text-dim); }
+  .row-actions{ display:flex; gap:10px; }
+  .row-actions span{ cursor:pointer; font-size:11px; color:var(--text-dim); text-decoration:underline; }
+  .row-actions span:hover{ color:var(--text); }
+  .row-actions .danger:hover{ color:var(--bear); }
+  .empty-state{ padding:30px 20px; text-align:center; color:var(--text-dim); font-size:12.5px; }
+
+  /* gate */
+  .gate{ position:fixed; inset:0; background:rgba(5,6,10,0.97); z-index:100; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .gate-card{ max-width:360px; width:100%; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px; text-align:center; }
+  .gate-card .mark{ width:48px; height:48px; margin:0 auto 14px; border-radius:11px; border:2px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:var(--cyan); font-family:'Barlow Condensed',sans-serif; }
+  .gate-card h3{ font-size:18px; margin-bottom:6px; }
+  .gate-card p{ font-size:11.5px; color:var(--text-dim); margin-bottom:16px; }
+  .gate-card input{ width:100%; padding:12px; background:#0A0C13; border:1px solid var(--line); border-radius:9px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:13px; margin-bottom:12px; text-align:center; }
+  .gate-card input:focus{ outline:none; border-color:var(--cyan); }
+  .gate-card button{ width:100%; padding:12px; border:none; border-radius:9px; background:var(--grad); color:#04141A; font-weight:700; font-family:'IBM Plex Mono',monospace; font-size:13px; cursor:pointer; }
+  .gate-error{ color:var(--bear); font-size:11px; margin-top:8px; min-height:14px; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="mark">P</div>
+    <h3>Punisher Host</h3>
+    <p>Admin access only. Enter your admin password.</p>
+    <input type="password" id="gate-input" placeholder="Admin password" autocomplete="off">
+    <button id="gate-submit">Enter</button>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+</div>
+
+<header>
+  <div class="mark">P</div>
+  <h1>PUNI<span>SHER</span></h1>
+  <span class="sub">Host — Key Management</span>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="card-head">Generate New Key</div>
+    <div class="gen-form">
+      <div class="field">
+        <label>Label (who it's for)</label>
+        <input type="text" id="new-label" placeholder="e.g. John">
+      </div>
+      <div class="field">
+        <label>Scan limit</label>
+        <input type="number" id="new-limit" value="20" min="1">
+      </div>
+      <button class="gen-btn" id="gen-btn">Generate Key</button>
+    </div>
+    <div class="new-key-box" id="new-key-box"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Active Keys</div>
+    <div id="table-wrap">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SS_KEY = 'punisher_admin_pw';
+let adminPw = sessionStorage.getItem(SS_KEY);
+
+const gate = document.getElementById('gate');
+const gateInput = document.getElementById('gate-input');
+const gateSubmit = document.getElementById('gate-submit');
+const gateError = document.getElementById('gate-error');
+
+async function tryLogin(pw){
+  gateError.textContent = '';
+  gateSubmit.disabled = true;
+  gateSubmit.textContent = 'Checking…';
+  try{
+    const r = await fetch('/api/admin/keys', { headers: { 'x-admin-password': pw } });
+    if (r.ok){
+      sessionStorage.setItem(SS_KEY, pw);
+      adminPw = pw;
+      gate.style.display = 'none';
+      loadKeys();
+    } else {
+      const d = await r.json().catch(()=>({}));
+      gateError.textContent = d.error || 'Incorrect password.';
+    }
+  } catch(e){
+    gateError.textContent = 'Could not reach the server.';
+  } finally {
+    gateSubmit.disabled = false;
+    gateSubmit.textContent = 'Enter';
+  }
+}
+gateSubmit.onclick = ()=>{ const v = gateInput.value.trim(); if (v) tryLogin(v); };
+gateInput.addEventListener('keydown', e=>{ if (e.key==='Enter') gateSubmit.click(); });
+
+if (adminPw){ gate.style.display = 'none'; loadKeys(); }
+
+async function loadKeys(){
+  const wrap = document.getElementById('table-wrap');
+  try{
+    const r = await fetch('/api/admin/keys', { headers: { 'x-admin-password': adminPw } });
+    if (!r.ok){ throw new Error('failed'); }
+    const { keys } = await r.json();
+    if (!keys.length){
+      wrap.innerHTML = '<div class="empty-state">No keys yet — generate one above.</div>';
+      return;
+    }
+    const rows = keys.map(k=>{
+      const used = parseInt(k.scansUsed,10)||0;
+      const limit = parseInt(k.scansLimit,10)||0;
+      const revoked = k.revoked === 'true' || k.revoked === true;
+      let statusClass = 'active', statusText = 'Active';
+      if (revoked){ statusClass='revoked'; statusText='Revoked'; }
+      else if (used >= limit){ statusClass='exhausted'; statusText='Exhausted'; }
+      const created = k.createdAt ? new Date(k.createdAt).toLocaleDateString() : '—';
+      return `
+        <tr>
+          <td><div class="key-cell"><code>${k.key}</code><span class="copy-ic" onclick="copyKey('${k.key}')">copy</span></div></td>
+          <td>${k.label || '—'}</td>
+          <td>${used}/${limit}</td>
+          <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+          <td>${created}</td>
+          <td>
+            <div class="row-actions">
+              <span onclick="toggleRevoke('${k.key}', ${!revoked})">${revoked ? 'Reactivate' : 'Revoke'}</span>
+              <span class="danger" onclick="deleteKey('${k.key}')">Delete</span>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Key</th><th>Label</th><th>Usage</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch(e){
+    wrap.innerHTML = '<div class="empty-state">Could not load keys. Check ADMIN_PASSWORD and Redis env vars.</div>';
+  }
+}
+
+function copyKey(k){
+  navigator.clipboard.writeText(k);
+}
+
+async function toggleRevoke(key, revoked){
+  await fetch('/api/admin/revoke', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-admin-password': adminPw },
+    body: JSON.stringify({ key, revoked })
+  });
+  loadKeys();
+}
+
+async function deleteKey(key){
+  if (!confirm(`Permanently delete key ${key}? This can't be undone.`)) return;
+  await fetch('/api/admin/delete', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-admin-password': adminPw },
+    body: JSON.stringify({ key })
+  });
+  loadKeys();
+}
+
+document.getElementById('gen-btn').onclick = async ()=>{
+  const btn = document.getElementById('gen-btn');
+  const label = document.getElementById('new-label').value.trim();
+  const limit = document.getElementById('new-limit').value;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try{
+    const r = await fetch('/api/admin/keys', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-admin-password': adminPw },
+      body: JSON.stringify({ label, scansLimit: limit })
+    });
+    const data = await r.json();
+    if (r.ok){
+      const box = document.getElementById('new-key-box');
+      box.style.display = 'block';
+      box.innerHTML = `New key created: <span class="k">${data.key}</span><br><span class="copy" onclick="copyKey('${data.key}')">Copy to clipboard</span>`;
+      document.getElementById('new-label').value = '';
+      loadKeys();
+    } else {
+      alert(data.error || 'Failed to generate key.');
+    }
+  } catch(e){
+    alert('Could not reach the server.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Key';
+  }
+};
+</script>
+</body>
+</html>

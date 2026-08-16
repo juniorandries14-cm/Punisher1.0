@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PUNISHER — AI Chart Pattern Scanner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#05060A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060A;
+    --panel:#0D0F16;
+    --panel-2:#12151E;
+    --line:#20242F;
+    --text:#EDEFF4;
+    --text-dim:#8891A3;
+    --cyan:#31D3F2;
+    --blue:#3E6BFF;
+    --grad: linear-gradient(90deg, var(--cyan), var(--blue));
+    --bull:#3ED6A0;
+    --bear:#EF5B57;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(900px 500px at 10% -10%, #101526 0%, transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, #0E1420 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  h1,h2,h3,.display{ font-family:'Barlow Condensed', sans-serif; letter-spacing:.01em; }
+  ::selection{ background:var(--cyan); color:#05060A; }
+  a{ color:var(--cyan); }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 24px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+    background:rgba(5,6,10,0.85);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    width:38px; height:38px; border-radius:10px; border:1.5px solid var(--cyan);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Barlow Condensed', sans-serif; font-weight:800; font-size:16px;
+    color:var(--cyan); box-shadow:0 0 18px rgba(49,211,242,0.25);
+  }
+  .brand h1{ font-size:22px; font-weight:800; line-height:1; }
+  .brand h1 span{ background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+  .scans-badge{
+    font-size:11px; color:var(--text-dim); border:1px solid var(--line);
+    padding:8px 14px; border-radius:999px; letter-spacing:.04em;
+  }
+  .scans-badge b{ color:var(--cyan); }
+
+  /* ---------- Hero ---------- */
+  .hero{ max-width:640px; margin:56px auto 0; padding:0 24px; text-align:center; }
+  .hero .logo-lg{
+    width:88px; height:88px; margin:0 auto 22px; border-radius:20px; border:2px solid var(--cyan);
+    display:flex; align-items:center; justify-content:center; font-size:34px; font-weight:800;
+    font-family:'Barlow Condensed',sans-serif; color:var(--cyan);
+    box-shadow:0 0 40px rgba(49,211,242,0.3);
+  }
+  .hero h2{ font-size:44px; font-weight:800; line-height:1.05; }
+  .hero h2 .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero .tag{ margin-top:10px; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); }
+  .hero .desc{
+    margin-top:26px; padding:20px; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    font-size:13px; line-height:1.8; color:var(--text-dim);
+  }
+  .cta{
+    display:inline-block; margin-top:22px; padding:15px 30px; border:none; border-radius:12px;
+    background:var(--grad); color:#04141A; font-weight:700; font-family:'IBM Plex Mono',monospace;
+    font-size:14px; letter-spacing:.02em; cursor:pointer; text-decoration:none;
+  }
+
+  /* ---------- Scanner card ---------- */
+  .scanner{ max-width:640px; margin:52px auto 0; padding:0 24px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .card-head{ padding:18px 22px; border-bottom:1px solid var(--line); }
+  .card-head .eyebrow{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-dim); }
+
+  .drop-zone{
+    margin:22px; padding:36px 20px; border:1.5px dashed var(--line); border-radius:14px;
+    text-align:center; cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .drop-zone.drag{ border-color:var(--cyan); background:rgba(49,211,242,0.06); }
+  .drop-zone input{ display:none; }
+  .plus-circle{
+    width:56px; height:56px; margin:0 auto 14px; border-radius:50%; background:var(--grad);
+    display:flex; align-items:center; justify-content:center; font-size:26px; color:#04141A; font-weight:700;
+  }
+  .drop-zone p{ font-size:13px; color:var(--text-dim); }
+  .drop-zone p b{ color:var(--text); }
+
+  .preview-wrap{ margin:0 22px 18px; display:none; }
+  .preview-wrap img{ width:100%; border-radius:10px; border:1px solid var(--line); display:block; }
+  .preview-wrap .swap{ margin-top:8px; font-size:11px; color:var(--cyan); cursor:pointer; text-align:center; }
+
+  .section-label{ padding:0 22px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px; margin-top:6px; }
+
+  .pill-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 22px; margin-bottom:22px; }
+  .pill-grid.tf{ grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media (max-width:420px){ .pill-grid.tf{ grid-template-columns:1fr 1fr 1fr; } }
+  .pill-btn{
+    padding:13px 8px; text-align:center; border-radius:12px; border:1px solid var(--line);
+    background:#0A0C13; color:var(--text); font-family:'IBM Plex Mono',monospace; font-weight:600;
+    font-size:12.5px; cursor:pointer; transition:all .12s ease;
+  }
+  .pill-btn:hover{ border-color:#3A4258; }
+  .pill-btn.active{ background:var(--grad); color:#04141A; border-color:transparent; }
+
+  .scan-btn{
+    margin:4px 22px 22px; padding:16px; text-align:center; border:none; border-radius:12px;
+    background:linear-gradient(90deg, #1E9E8C, #1D6FA0); color:#04141A; font-family:'IBM Plex Mono',monospace;
+    font-weight:700; font-size:14px; cursor:pointer; letter-spacing:.02em;
+  }
+  .scan-btn:disabled{ background:#232833; color:#6B7280; cursor:not-allowed; }
+  .spinner{ width:15px; height:15px; border:2px solid rgba(4,20,26,0.35); border-top-color:#04141A; border-radius:50%; display:inline-block; animation:spin .7s linear infinite; vertical-align:-3px; margin-right:8px; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- Result ---------- */
+  .result{ margin:0 22px 22px; padding:18px; border-radius:12px; background:var(--panel-2); border:1px solid var(--line); font-size:12.5px; line-height:1.7; display:none; }
+  .result-bias{ display:inline-block; padding:5px 12px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; border-radius:999px; margin-bottom:12px; }
+  .result-bias.bullish{ background:rgba(62,214,160,0.14); color:var(--bull); border:1px solid var(--bull); }
+  .result-bias.bearish{ background:rgba(239,91,87,0.14); color:var(--bear); border:1px solid var(--bear); }
+  .result-bias.neutral{ background:rgba(136,145,163,0.14); color:var(--text-dim); border:1px solid var(--text-dim); }
+  .result-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); gap:14px; }
+  .result-row .k{ color:var(--text-dim); flex-shrink:0; }
+  .result-row .v{ color:var(--text); text-align:right; }
+  .result-notes{ margin-top:12px; color:var(--text); }
+  .result-notes b{ color:var(--cyan); }
+  .result-error{ color:var(--bear); }
+
+  /* ---------- Install ---------- */
+  .install{ max-width:640px; margin:24px auto 0; padding:0 24px; }
+  .install .card{ padding:18px 22px; }
+  .install h3{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:14px; }
+  .install-row{ display:flex; gap:12px; align-items:center; padding:12px 0; border-top:1px solid var(--line); font-size:12.5px; }
+  .install-row:first-of-type{ border-top:none; }
+  .install-row .platform{ color:var(--text-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; display:block; margin-bottom:2px; }
+
+  footer{ max-width:640px; margin:30px auto 0; padding:0 24px; text-align:center; color:var(--text-dim); font-size:10.5px; line-height:1.7; }
+  footer b{ color:var(--cyan); }
+
+  /* ---------- License gate ---------- */
+  .gate{
+    position:fixed; inset:0; background:rgba(5,6,10,0.96); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .gate-card{ max-width:380px; width:100%; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:28px; text-align:center; }
+  .gate-card .mark{ width:52px; height:52px; margin:0 auto 16px; border-radius:12px; border:2px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:var(--cyan); font-family:'Barlow Condensed',sans-serif; }
+  .gate-card h3{ font-size:20px; font-weight:700; margin-bottom:8px; }
+  .gate-card p{ font-size:12px; color:var(--text-dim); line-height:1.6; margin-bottom:18px; }
+  .gate-card input{
+    width:100%; padding:13px 14px; background:#0A0C13; border:1px solid var(--line); border-radius:10px;
+    color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:13px; margin-bottom:12px; text-align:center;
+    letter-spacing:.05em;
+  }
+  .gate-card input:focus{ outline:none; border-color:var(--cyan); }
+  .gate-card button{
+    width:100%; padding:13px; border:none; border-radius:10px; background:var(--grad); color:#04141A;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .gate-card button:disabled{ opacity:.6; cursor:not-allowed; }
+  .gate-error{ color:var(--bear); font-size:11.5px; margin-top:10px; min-height:14px; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="mark">P</div>
+    <h3>Enter Access Key</h3>
+    <p>PUNISHER is invite-only. Enter the access key you were given to unlock the scanner.</p>
+    <input type="text" id="gate-input" placeholder="PUN-XXXXXXXXXXXX" autocomplete="off" autocapitalize="off">
+    <button id="gate-submit">Unlock</button>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="mark">P</div>
+    <h1>PUNI<span>SHER</span></h1>
+  </div>
+  <div class="scans-badge">Scans <b id="scans-count">--/--</b></div>
+</header>
+
+<div class="hero">
+  <div class="logo-lg">P</div>
+  <h2>PUNISHER <span class="grad">AI</span></h2>
+  <div class="tag">Autonomous Trading Chart Pattern Scanner</div>
+  <div class="desc">
+    PUNISHER is an AI chart scanner that reads screenshots of trading charts and delivers
+    directional read-outs against CRT and 10AM PO3 (Powell) setups — entries, invalidation,
+    and what to watch for next — in seconds.
+  </div>
+  <a href="#scanner" class="cta">Launch Chart Scanner</a>
+</div>
+
+<div class="scanner" id="scanner">
+  <div class="card">
+    <div class="card-head"><div class="eyebrow">AI Pattern Scanner</div></div>
+
+    <div class="drop-zone" id="drop-zone">
+      <div class="plus-circle">+</div>
+      <p><b>Upload your chart screenshot</b><br>PNG or JPG — drag &amp; drop or click to browse</p>
+      <input type="file" id="file-input" accept="image/*">
+    </div>
+
+    <div class="preview-wrap" id="preview-wrap">
+      <img id="preview-img" alt="Uploaded chart preview">
+      <div class="swap" id="swap-btn">Upload a different screenshot</div>
+    </div>
+
+    <div class="section-label">Strategy</div>
+    <div class="pill-grid" id="strategy-grid">
+      <div class="pill-btn active" data-model="crt">CRT</div>
+      <div class="pill-btn" data-model="powell">10AM PO3</div>
+    </div>
+
+    <div class="section-label">Timeframe</div>
+    <div class="pill-grid tf" id="tf-grid">
+      <div class="pill-btn" data-tf="1m">M1</div>
+      <div class="pill-btn" data-tf="5m">M5</div>
+      <div class="pill-btn active" data-tf="15m">M15</div>
+      <div class="pill-btn" data-tf="30m">M30</div>
+      <div class="pill-btn" data-tf="1h">H1</div>
+      <div class="pill-btn" data-tf="4h">H4</div>
+      <div class="pill-btn" data-tf="1d">D1</div>
+    </div>
+
+    <button class="scan-btn" id="scan-btn" disabled>Upload a screenshot first</button>
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<div class="install">
+  <div class="card">
+    <h3>Download The App</h3>
+    <div class="install-row">
+      <div><span class="platform">iOS</span>Share button → Add to Home Screen</div>
+    </div>
+    <div class="install-row">
+      <div><span class="platform">Android</span>Chrome menu → Install app</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <b>PUNISHER</b> — Signals are AI-generated. Not financial advice. Confirm every setup yourself before risking capital.
+</footer>
+
+<script>
+/* ---------------- License gate ---------------- */
+const LS_KEY = 'punisher_license_key';
+let licenseKey = localStorage.getItem(LS_KEY);
+
+const gate = document.getElementById('gate');
+const gateInput = document.getElementById('gate-input');
+const gateSubmit = document.getElementById('gate-submit');
+const gateError = document.getElementById('gate-error');
+
+async function validateKey(key){
+  const r = await fetch('/api/key-status', { headers: { 'x-license-key': key } });
+  if (r.status === 404) return { ok:false, msg:'Key not found.' };
+  const data = await r.json();
+  if (data.revoked) return { ok:false, msg:'This key has been revoked.' };
+  if (data.scansUsed >= data.scansLimit) return { ok:false, msg:'This key has used all its scans.' };
+  return { ok:true, data };
+}
+
+async function tryUnlock(key){
+  gateError.textContent = '';
+  gateSubmit.disabled = true;
+  gateSubmit.textContent = 'Checking…';
+  try{
+    const result = await validateKey(key);
+    if (result.ok){
+      localStorage.setItem(LS_KEY, key);
+      licenseKey = key;
+      gate.style.display = 'none';
+      updateScansBadge(result.data.scansUsed, result.data.scansLimit);
+    } else {
+      gateError.textContent = result.msg;
+    }
+  } catch(e){
+    gateError.textContent = 'Could not reach the server. Try again.';
+  } finally {
+    gateSubmit.disabled = false;
+    gateSubmit.textContent = 'Unlock';
+  }
+}
+
+gateSubmit.onclick = ()=>{
+  const v = gateInput.value.trim();
+  if (v) tryUnlock(v);
+};
+gateInput.addEventListener('keydown', e=>{ if (e.key==='Enter') gateSubmit.click(); });
+
+function updateScansBadge(used, limit){
+  document.getElementById('scans-count').textContent = `${used}/${limit}`;
+}
+
+if (licenseKey){
+  gate.style.display = 'none';
+  validateKey(licenseKey).then(result=>{
+    if (result.ok){ updateScansBadge(result.data.scansUsed, result.data.scansLimit); }
+    else { localStorage.removeItem(LS_KEY); licenseKey = null; gate.style.display = 'flex'; gateError.textContent = result.msg; }
+  }).catch(()=>{ /* stay unlocked optimistically if offline check fails */ });
+} else {
+  gate.style.display = 'flex';
+}
+
+/* ---------------- Strategy / timeframe state ---------------- */
+let state = { model:'crt', tf:'15m', tfLabel:'M15' };
+
+document.querySelectorAll('#strategy-grid .pill-btn').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('#strategy-grid .pill-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.model = btn.dataset.model;
+  };
+});
+document.querySelectorAll('#tf-grid .pill-btn').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('#tf-grid .pill-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tf = btn.dataset.tf;
+    state.tfLabel = btn.textContent;
+  };
+});
+
+/* ---------------- Upload ---------------- */
+let uploadedBase64 = null;
+let uploadedMediaType = null;
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const previewWrap = document.getElementById('preview-wrap');
+const previewImg = document.getElementById('preview-img');
+const scanBtn = document.getElementById('scan-btn');
+const swapBtn = document.getElementById('swap-btn');
+
+dropZone.onclick = ()=> fileInput.click();
+swapBtn.onclick = ()=> fileInput.click();
+['dragover','dragenter'].forEach(ev=> dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=> dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
+dropZone.addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+fileInput.addEventListener('change', e=>{ const f = e.target.files[0]; if (f) handleFile(f); });
+
+function handleFile(file){
+  if (!file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const dataUrl = reader.result;
+    uploadedMediaType = file.type;
+    uploadedBase64 = dataUrl.split(',')[1];
+    previewImg.src = dataUrl;
+    previewWrap.style.display = 'block';
+    dropZone.style.display = 'none';
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan Screenshot';
+    document.getElementById('result').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------------- Scan ---------------- */
+const CHECKLISTS = {
+  crt: `CRT rules: a higher-timeframe range candle's high/low gets swept (a wick beyond one side), the sweep candle closes back inside the range, then a market-structure shift confirms reversal, ideally with an FVG or order block for entry confluence.`,
+  powell: `10am PO3 rules: price sweeps the prior session/opening-range high or low into the 10:00 AM ET candle (manipulation), then displaces back through the 10:00 AM open with a strong-bodied candle (distribution), which becomes the entry reference.`,
+};
+const MODEL_NAMES = { crt:'Candle Range Theory (CRT)', powell:'10am Power of Three (Powell / PO3)' };
+
+scanBtn.onclick = async ()=>{
+  if (!uploadedBase64 || !licenseKey) return;
+  scanBtn.disabled = true;
+  scanBtn.innerHTML = '<span class="spinner"></span>Scanning…';
+  const resultBox = document.getElementById('result');
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = 'Reading the chart…';
+
+  const prompt = `You are a technical chart analyst. The attached image is a screenshot of a price chart on the ${state.tfLabel} timeframe. Analyze it strictly for a ${MODEL_NAMES[state.model]} setup.
+
+${CHECKLISTS[state.model]}
+
+Look only at what is visible in the image. Do not assume information that isn't visible.
+
+Respond with ONLY a raw JSON object, no markdown fences, no preamble, in exactly this shape:
+{
+  "bias": "bullish" | "bearish" | "neutral",
+  "setup_present": true | false,
+  "confidence": "low" | "medium" | "high",
+  "phase": "short label for what phase/step of the model is visible",
+  "key_level": "the specific price level or candle feature that matters most, described in words",
+  "invalidation": "what would invalidate this read",
+  "notes": "2-4 sentences of plain-language analysis a trader could act on"
+}`;
+
+  try{
+    const r = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-license-key': licenseKey },
+      body: JSON.stringify({ image: uploadedBase64, mediaType: uploadedMediaType, prompt })
+    });
+    const data = await r.json();
+    if (!r.ok){
+      resultBox.innerHTML = `<div class="result-error">${data.error || 'Scan failed.'}</div>`;
+      if (r.status === 401 || r.status === 403){
+        setTimeout(()=>{ localStorage.removeItem(LS_KEY); location.reload(); }, 1800);
+      }
+      return;
+    }
+    if (data.license) updateScansBadge(data.license.scansUsed, data.license.scansLimit);
+
+    const raw = (data.content || []).map(b=>b.text || '').join('').trim();
+    const clean = raw.replace(/^```json\s*|```$/g, '').trim();
+    const parsed = JSON.parse(clean);
+    renderResult(parsed);
+  } catch(err){
+    resultBox.innerHTML = `<div class="result-error">Scan failed: ${err.message || 'could not reach the server'}.</div>`;
+  } finally {
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan Screenshot';
+  }
+};
+
+function renderResult(r){
+  const box = document.getElementById('result');
+  const biasClass = r.bias === 'bullish' ? 'bullish' : r.bias === 'bearish' ? 'bearish' : 'neutral';
+  box.innerHTML = `
+    <div class="result-bias ${biasClass}">${r.bias || 'neutral'} · ${r.setup_present ? 'setup present' : 'not confirmed'}</div>
+    <div class="result-row"><span class="k">Confidence</span><span class="v">${r.confidence || '—'}</span></div>
+    <div class="result-row"><span class="k">Phase</span><span class="v">${r.phase || '—'}</span></div>
+    <div class="result-row"><span class="k">Key level</span><span class="v">${r.key_level || '—'}</span></div>
+    <div class="result-row"><span class="k">Invalidation</span><span class="v">${r.invalidation || '—'}</span></div>
+    <div class="result-notes"><b>Notes —</b> ${r.notes || ''}</div>
+  `;
+}
+</script>
+</body>
+</html>
